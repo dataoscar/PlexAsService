@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+	<Product Id="*" Name="Plex As a Service" Language="1033" Version="1.0.0.0" Manufacturer="@dataoscar" UpgradeCode="8c061f26-c574-4a9e-820a-9b7f4956673e">
+		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated" Description="[ProductName] Installer" />
+
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+		<MediaTemplate EmbedCab="yes" />
+
+		<Feature Id="ProductFeature" Title="Plex As a Service" Description="Plex As a Service files" Level="1">
+			<ComponentGroupRef Id="ProductComponents" />
+		</Feature>
+        
+    <UIRef Id="WixUI_Minimal" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+
+    <UI>
+      <Dialog Id="UserDetailsDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Service Details" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Enter [ProductName] Service Details" />
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="UserNameLabel" Type="Text" X="20" Y="90" Width="135" Height="13" Text="Service User Name:" />
+        <Control Id="UserName" Type="Edit" X="161" Y="90" Width="180" Height="15" Property="USER"  />
+        <Control Id="PasswordLabel" Type="Text" X="20" Y="110" Width="135" Height="13" Text="Service Password:" />
+        <Control Id="Password" Type="Edit" Password="yes" X="161" Y="110" Width="180" Height="15" Property="PASSWORD" />
+
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Install" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Install">
+          <Condition Action="disable">
+            (USER = "") OR (PASSWORD = "") OR (DOMAINNAME = "")
+          </Condition>
+          <Condition Action="enable">
+            <![CDATA[(USER <> "") AND (PASSWORD <> "") ]]>
+          </Condition>
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <Show Dialog="UserDetailsDlg" After="WelcomeEulaDlg"/>
+      </InstallUISequence>
+    </UI>
+    <SetProperty Id="USER" Before="InstallServices" Sequence="execute" Value=".\[USER]"><![CDATA[NOT(USER << ".")]]></SetProperty>
+
+    
+	</Product>
+
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFilesFolder">
+				<Directory Id="INSTALLFOLDER" Name="Plex Service" />
+			</Directory>
+		</Directory>
+	</Fragment>
+
+	<Fragment>
+		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+				<Component Id="MainExecutable" Guid="AB405321-9B1E-4397-8B59-1599236C60E7">
+        <File Id="plexSvcRunnerEXE" Name="$(var.PlexSvcRunner.TargetFileName)" Source="$(var.PlexSvcRunner.TargetPath)" KeyPath="yes" Vital="yes"></File>
+        <File Id="notryinjectDLL" Name="$(var.notrayinject.TargetFileName)" Source="$(var.notrayinject.TargetPath)" Vital="yes"></File>
+        <util:User Id="UpdateUserLogonAsService" UpdateIfExists="yes" CreateUser="no" Name="[USER]" LogonAsService="yes" />
+        <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Vital="yes" Name="PlexSvcRunner" DisplayName="Plex As Service Runner"
+                        Description="Allows the loading of Plex as a Windows Service"
+                        Start="auto" Account="[USER]" Password="[PASSWORD]" ErrorControl="normal" />
+        <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="PlexSvcRunner" Wait="yes" />
+      </Component>
+		</ComponentGroup>
+	</Fragment>
+
+</Wix>
